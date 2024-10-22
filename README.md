@@ -4,7 +4,7 @@ The plugin reads a "track" file with the same name as the matching video file bu
 
 The .dmx file is a JSON file with the following format:
 
-'''
+
 {
    "filename":"video_file_name.mp4",
    "timedata":
@@ -25,7 +25,7 @@ The .dmx file is a JSON file with the following format:
        }
    ]
  }
- '''
+
 
  
  
