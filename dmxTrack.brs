@@ -14,7 +14,7 @@
 '   [
 '       {
 '           "time_sec":"0",
-'           "tag":"1:0"
+'           "tag":"1:0,2:123"
 '       },
 '       {
 '           "time_sec":"0.83215",
@@ -42,7 +42,6 @@ Function DMX_Initialize(msgPort As Object, userVariables As Object, bsp as Objec
 End Function
 
 
-
 Function newDMX(msgPort As Object, userVariables As Object, bsp as Object)
 	print "initDMX"
 
@@ -59,7 +58,6 @@ Function newDMX(msgPort As Object, userVariables As Object, bsp as Object)
     print type(s.serial)
     s.objectName = "DMX_object"
 
-
 	return s
 
 End Function
@@ -74,6 +72,22 @@ Function DMX_ProcessEvent(event As Object) as boolean
 
 	if type(event) = "roVideoEvent" then			
 		retval = HandleVideoEventPlugin(event, m)
+
+    else if type(event) = "roAssociativeArray" then
+
+        	if type(event["EventType"]) = "roString" then
+             		if (event["EventType"] = "SEND_PLUGIN_MESSAGE") then
+                		if event["PluginName"] = "DMX" then
+                    		pluginMessage$ = event["PluginMessage"]
+							print "SEND_PLUGIN/EVENT_MESSAGE:";pluginMessage$
+							'messageToParse$ = event["PluginName"]+"!"+pluginMessage$
+							m.dlog("Plugin Message: "+pluginMessage$)
+                            retval = ParsePluginMsg(pluginMessage$, m)
+					
+                		endif
+            		endif
+        	endif
+		
 	end if
 	
 	'debug
@@ -83,14 +97,10 @@ End Function
 	
 
 Function HandleVideoEventPlugin(origMsg as Object, DMX as Object) as boolean
-
 	if type(origMsg) = "roVideoEvent" then
-	
-		'print "origMsg: ";origMsg.GetInt()
 		
 		'stop
 		if origMsg.GetInt() = 3 then
-		
             m.serial = CreateObject("roSerialPort", 2, 115200)
             print "checking for active state/file name"
 	        print m.bsp.sign.zoneshsm[0].activestate.name$
@@ -102,9 +112,7 @@ Function HandleVideoEventPlugin(origMsg as Object, DMX as Object) as boolean
             fullname$ = fname$+"dmx"
             
             m.SubtitleFilePath$ = m.bsp.assetpoolfiles.GetPoolFilePath(fullname$)
-            'print m.SubtitleFilePath$
 
-            'if m.SubtitleFilePath$ then
             m.FileRead = ReadAsciiFile(m.SubtitleFilePath$)
         
             'print " m.FileRead " + Chr(13) + Chr(10) m.FileRead
@@ -126,21 +134,15 @@ Function HandleVideoEventPlugin(origMsg as Object, DMX as Object) as boolean
             'end if
 
 		else if origMsg.GetInt() = 12 then
-		
 			id = origMsg.GetData()
-			
 			print "TimeCode event Received" id, m.codes[id]
 			sendDMXcommand(m, m.codes[id]) 
-
-			
+	
 		else if origMsg.GetInt() = 8 then
-		
 			'print "Video End Event Received"
-			
-				DMX.id = 0
-				DMX.subItems = 0
-		
-		
+			DMX.id = 0
+			DMX.subItems = 0
+
 		end if
 	
 	end if
@@ -155,3 +157,18 @@ Sub sendDMXcommand(s as object, code$ as String)
         print "problem with serial port init.", type(s.serial), code$
 	end if	
 End Sub
+
+Function ParsePluginMsg(origMsg as string, s as object) as boolean
+	retval = true
+	
+	' convert the message to all lower case for easier string matching later
+	msg = lcase(origMsg)
+	print "Received Plugin message: " + msg
+	' verify its a DMX message'
+
+    m.serial = CreateObject("roSerialPort", 2, 115200)
+    sendDMXcommand(m, msg) 
+
+	return (retVal)
+end Function
+
